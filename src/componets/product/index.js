@@ -1,9 +1,10 @@
 import React from 'react';
-import { Text, View, Image, Button } from 'react-native';
+import { Text, View, Image } from 'react-native';
 
 function Product({ product }) {
     return (
       <View
+        onC
         style={{
           backgroundColor: '#fff',
           marginTop: 10,

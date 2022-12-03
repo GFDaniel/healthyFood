@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView, Button, TextInput } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Button, TextInput, Text } from 'react-native';
 import Product from '../product';
 
 function ProductList() {
@@ -23,10 +23,16 @@ function ProductList() {
         }
     ]);
 
+    const [item, setItem] = React.useState();
+    const [removeItem, setRemoveItem] = React.useState(false);
     const [scannedProduct, setScannedProduct] = React.useState('');
     const [scanScreen, setScanScreen] = React.useState(false);
-    const [productsList, setProductsList] = React.useState([]);
     const [searchBoxText, setSearchBoxText] = React.useState();
+    const [searchedProduct, setSearchedProduct] = React.useState([]);
+    const [foundProduct, setFoundProduct] = React.useState(false);
+    const [notFoundProduct, setNotFoundProduct] = React.useState(false);
+    
+    
     
 
     const scanProduct = async (barCode) => {
@@ -43,15 +49,15 @@ function ProductList() {
         }
     }
 
-    const searchProduct = async () => {
-        let value = '';
-        try {
-          let response = await fetch(
-            'https://world.openfoodfacts.org/api/v0/product/'+searchBoxText,
-          );
-          value = await response.json();
-        } catch (error) {
-          console.error(error);
+    const searchProduct = () => {
+        if (searchBoxText) {
+            const objIndex = products.findIndex(obj => obj.name.toUpperCase().indexOf(searchBoxText.toUpperCase()) !== -1 );
+            if (objIndex>=0) {
+                setSearchedProduct(products[objIndex])
+                setFoundProduct(!foundProduct)
+            }else{
+                setNotFoundProduct(!notFoundProduct)
+            }           
         }
     }
 
@@ -69,23 +75,29 @@ function ProductList() {
     }
 
     const removeProduct = () => {
-        const objIndex = products.findIndex(obj => obj.barcode == scannedProduct.barcode);
-        if (objIndex>=0) {
+        const objIndex = products.findIndex(obj => obj.barcode == item.barcode);
+        const quantity = products[objIndex].quantity;
+        if (quantity>1) {
             let newProducts = [...products];
             newProducts[objIndex].quantity = products[objIndex].quantity-1;
             setProducts(newProducts);
-            setScanScreen(!scanScreen)
         }else{
-            const newProducts = products.filter(obj => obj.barcode !== scannedProduct.barcode);
+            const newProducts = products.filter(obj => obj.barcode !== item.barcode);
             setProducts(newProducts)
-            setScanScreen(!scanScreen)
         }
+        setRemoveItem(!removeItem)
     }
+
+    const viewMore = (product) => {
+        setItem(product)
+        setRemoveItem(!removeItem)
+    }
+
 
   
     return (
         <>
-            { !scanScreen && (
+            { !scanScreen && !removeItem && !foundProduct && !notFoundProduct && (
                 <>
                     <View style={{ height: 100, paddingHorizontal:40, paddingVertical:20, flexDirection: "row" }}>
                         <View style={{ flex: 3}}>
@@ -103,8 +115,8 @@ function ProductList() {
                     <ScrollView>
                         {
                             products.map((product, i) => (
-                                <TouchableOpacity>
-                                    <Product key={i} product={product} />
+                                <TouchableOpacity onPress={()=>{viewMore(product)}}>
+                                    <Product key={i} product={product}/>
                                 </TouchableOpacity>
                             ))
                         }
@@ -132,6 +144,57 @@ function ProductList() {
                     <View style={{ height: 100, paddingHorizontal:40, paddingVertical:10 }}>
                         <Button
                             title="Regresar" onPress={() => setScanScreen(!scanScreen)}
+                        />
+                    </View>
+                </>
+            )}
+
+            { removeItem && (
+                <>
+                    <View>
+                        <TouchableOpacity>
+                            <Product product={item} />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ height: 50, paddingHorizontal:40, paddingTop:10 }}>
+                        <Button
+                            title="Eliminar" onPress={() => removeProduct() }
+                        />
+                    </View>
+                    <View style={{ height: 100, paddingHorizontal:40, paddingVertical:10 }}>
+                        <Button
+                            title="Regresar" onPress={() => setRemoveItem(!removeItem)}
+                        />
+                    </View>
+                </>
+            )}
+
+            { foundProduct && (
+                <>
+                    <View>
+                        <Text style={{ height: 50, paddingHorizontal:40, paddingVertical:10, fontWeight:'bold', fontSize:20 }}>Producto No Encontrado</Text>
+                    </View>
+                    <View>
+                        <TouchableOpacity>
+                            <Product product={searchedProduct} />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={{ height: 100, paddingHorizontal:40, paddingVertical:10 }}>
+                        <Button
+                            title="Regresar" onPress={() => setFoundProduct(!foundProduct)}
+                        />
+                    </View>
+                </>
+            )}
+
+            { notFoundProduct && (
+                <>
+                    <View>
+                        <Text style={{ height: 50, paddingHorizontal:40, paddingVertical:10, fontWeight:'bold', fontSize:20 }}>Producto No Encontrado</Text>
+                    </View>
+                    <View style={{ height: 100, paddingHorizontal:40, paddingVertical:10 }}>
+                        <Button
+                            title="Regresar" onPress={() => setNotFoundProduct(!notFoundProduct)}
                         />
                     </View>
                 </>
