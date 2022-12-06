@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { View, TouchableOpacity, ScrollView, Button, TextInput, Text } from 'react-native';
+import { View, TouchableOpacity, ScrollView, Button, TextInput, Text, StyleSheet } from 'react-native';
+import { useCameraDevices } from 'react-native-vision-camera';
+import { Camera } from 'react-native-vision-camera';
+import { useScanBarcodes, BarcodeFormat } from 'vision-camera-code-scanner';
+
 import Product from '../product';
 
 function ProductList() {
@@ -31,11 +35,25 @@ function ProductList() {
     const [searchedProduct, setSearchedProduct] = React.useState([]);
     const [foundProduct, setFoundProduct] = React.useState(false);
     const [notFoundProduct, setNotFoundProduct] = React.useState(false);
+
+    const [scanQRCode, setScanQRCode] = React.useState(false);
+    const [hasPermission, setHasPermission] = React.useState(false);
+    const devices = useCameraDevices();
+    const device = devices.back;
+
+    const [frameProcessor, barcodes] = useScanBarcodes([BarcodeFormat.QR_CODE], {
+        checkInverted: true,
+    });
     
-    
+    React.useEffect(() => {
+        (async () => {
+          const status = await Camera.requestCameraPermission();
+          setHasPermission(status === 'authorized');
+        })();
+    }, []);
     
 
-    const scanProduct = async (barCode) => {
+    const scanProduct1 = async (barCode) => {
         let value = '';
         try {
           let response = await fetch(
@@ -47,6 +65,10 @@ function ProductList() {
         } catch (error) {
           console.error(error);
         }
+    }
+
+    const scanProduct = async () => {
+        setScanQRCode(!scanQRCode)
     }
 
     const searchProduct = () => {
@@ -97,7 +119,7 @@ function ProductList() {
   
     return (
         <>
-            { !scanScreen && !removeItem && !foundProduct && !notFoundProduct && (
+            { !scanQRCode && !removeItem && !foundProduct && !notFoundProduct && (
                 <>
                     <View style={{ height: 100, paddingHorizontal:40, paddingVertical:20, flexDirection: "row" }}>
                         <View style={{ flex: 3}}>
@@ -123,7 +145,7 @@ function ProductList() {
                     </ScrollView>
                     <View style={{ height: 100, paddingHorizontal:40, paddingVertical:20 }}>
                         <Button
-                            title="Escanear" onPress={() => scanProduct('7622210449283')}
+                            title="Escanear" onPress={() => scanProduct()}
                         />
                     </View>
                 </>
@@ -198,6 +220,27 @@ function ProductList() {
                         />
                     </View>
                 </>
+            )}
+
+            { scanQRCode && device == null && hasPermission && (
+                <ActivityIndicator size="large" color="#00ff00" />
+            )}
+
+            { scanQRCode && device != null && hasPermission && (
+                <View>
+                    <Camera
+                    style={StyleSheet.absoluteFill}
+                    device={device}
+                    isActive={true}
+                    frameProcessor={frameProcessor}
+                    frameProcessorFps={5}
+                    />
+                    {barcodes.map((barcode, idx) => (
+                        <Text key={idx} style={{ fontSize: 20, color: 'white', fontWeight: 'bold' }}>
+                            {barcode.displayValue}
+                        </Text>
+                    ))}
+                </View>
             )}
         </>
 
